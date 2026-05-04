@@ -12,8 +12,16 @@ genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-2.5-flash')
 
 RSS_URLS = [
-    "https://www.petmd.com/rss/dog.health",
-    "https://www.petmd.com/rss/cat.health"
+    "https://www.dogster.com/feed/",                # أكبر مجلة عالمية للكلاب
+    "https://www.catster.com/feed/",                # أكبر مجلة عالمية للقطط
+    "https://www.petful.com/feed/",                 # موقع متخصص في صحة وتغذية الحيوانات
+    "https://animalwellnessmagazine.com/feed/",     # مجلة العناية الصحية بالحيوانات
+    "https://moderndogmagazine.com/rss.xml",        # مجلة الكلب الحديث (أخبار ومنوعات)
+    "https://moderncat.com/rss.xml",                # مجلة القطة الحديثة
+    "https://theconsciouscat.net/feed/",            # مدونة شهيرة جداً للعناية بالقطط
+    "https://thatmutt.com/feed/",                   # مدونة ممتازة لتدريب الكلاب
+    "https://www.wideopenpets.com/feed/",           # موقع شامل لجميع أنواع الحيوانات الأليفة
+    "https://www.petsworld.in/blog/feed/"           # مدونة شاملة للمعلومات والمنتجات
 ]
 
 def fetch_latest_news():
