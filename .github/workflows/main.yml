@@ -7,8 +7,8 @@ on:
 
 jobs:
   post-article:
-runs-on: ubuntu-22.04
-        steps:
+runs-on: ubuntu-latest
+steps:
       - uses: actions/checkout@v3
 
       - name: Set up Python
