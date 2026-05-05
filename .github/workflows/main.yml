@@ -2,14 +2,19 @@ name: Auto Post to Petaura26
 
 on:
   schedule:
-    - cron: '0 */1 * * *'
+    - cron: '0 */2 * * *'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   post-article:
-runs-on: ubuntu-latest
-steps:
-      - uses: actions/checkout@v3
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -24,3 +29,11 @@ steps:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           BLOG_ID: ${{ secrets.BLOG_ID }}
         run: python script.py
+
+      - name: Commit history file
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add posted_urls.txt || true
+          git commit -m "Update posted URLs history" || true
+          git push || true
