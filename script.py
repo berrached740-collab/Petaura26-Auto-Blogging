@@ -1,6 +1,7 @@
 import feedparser
 import google.generativeai as genai
 import os
+import time
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
@@ -23,30 +24,29 @@ RSS_URLS = [
     "https://www.petsworld.in/blog/feed/"
 ]
 
-# اسم الملف الذي سيحفظ الروابط المنشورة
 HISTORY_FILE = "posted_urls.txt"
 
 def load_posted_urls():
-    """قراءة الروابط التي تم نشرها سابقاً"""
     if os.path.exists(HISTORY_FILE):
         with open(HISTORY_FILE, "r") as f:
             return set(f.read().splitlines())
     return set()
 
 def save_posted_url(url):
-    """حفظ الرابط الجديد في ملف الذاكرة"""
     with open(HISTORY_FILE, "a") as f:
         f.write(url + "\n")
 
-def fetch_latest_news():
+def fetch_latest_news(max_articles=2):
+    """هذه الدالة تقوم بجمع عدد محدد من المقالات الجديدة غير المنشورة"""
     posted_urls = load_posted_urls()
+    new_articles = []
     
     for url in RSS_URLS:
         feed = feedparser.parse(url)
-        for entry in feed.entries: # البحث في جميع المقالات وليس الأول فقط
+        for entry in feed.entries:
             link = entry.link
             
-            # التحقق مما إذا كان المقال قد نُشر مسبقاً
+            # التحقق من أن المقال جديد ولم ينشر سابقاً
             if link not in posted_urls:
                 image_url = ""
                 if 'media_content' in entry:
@@ -57,13 +57,21 @@ def fetch_latest_news():
                             image_url = l.href
                             break
                             
-                return {
+                new_articles.append({
                     "title": entry.title,
                     "summary": entry.summary,
                     "link": link,
                     "image": image_url
-                }
-    return None
+                })
+                
+                # إضافة الرابط لقائمة المنشورات مؤقتاً حتى لا يتم سحبه مرة أخرى
+                posted_urls.add(link)
+                
+                # التوقف عند جمع العدد المطلوب من المقالات
+                if len(new_articles) >= max_articles:
+                    return new_articles
+                    
+    return new_articles
 
 def generate_article_gemini(news_data):
     prompt = f"""
@@ -122,14 +130,25 @@ def post_to_blogger(title, content):
         return False
 
 if __name__ == "__main__":
-    news = fetch_latest_news()
-    if news:
-        html_content = generate_article_gemini(news)
-        success = post_to_blogger(news['title'], html_content)
+    print("⏳ Searching for up to 2 new unique articles...")
+    news_list = fetch_latest_news(max_articles=2)
+    
+    if news_list:
+        print(f"✅ Found {len(news_list)} new article(s). Processing...")
         
-        # إذا تم النشر بنجاح، احفظ الرابط حتى لا ننشره مرة أخرى
-        if success:
-            save_posted_url(news['link'])
-            print(f"✅ Saved URL to history: {news['link']}")
+        for index, news in enumerate(news_list):
+            print(f"\n👉 Processing Article {index + 1}: {news['title']}")
+            html_content = generate_article_gemini(news)
+            success = post_to_blogger(news['title'], html_content)
+            
+            if success:
+                save_posted_url(news['link'])
+                print(f"✅ Saved URL to history: {news['link']}")
+            
+            # الانتظار لمدة دقيقة بين كل مقال لتجنب حظر API بلوجر أو الذكاء الاصطناعي
+            if index < len(news_list) - 1:
+                print("⏳ Waiting 60 seconds before processing the next article to avoid API limits...")
+                time.sleep(60)
+                
     else:
-        print("No new unique news found.")
+        print("ℹ️ No new unique news found.")
